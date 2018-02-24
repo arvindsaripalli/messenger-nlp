@@ -1,7 +1,8 @@
 import argparse
 import getpass
 import joblib
-gfrom fbchat import Client
+import os
+from fbchat import Client
 
 
 def get_args():
@@ -48,8 +49,12 @@ def main():
         if message.author != user_id:
             user_messages.append(message)
 
+    if not os.path.exists('messages'):
+        os.makedirs('messages')
     joblib.dump(user_messages, './messages/{}.pkl'.format(search_name))
+
     print("Wrote {} messages to ".format(len(user_messages)), "./messages/{}.pkl".format(search_name))
+    
     client.logout()
 
 
