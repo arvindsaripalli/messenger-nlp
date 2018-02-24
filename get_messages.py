@@ -1,8 +1,7 @@
 import argparse
 import getpass
 import joblib
-import time
-from fbchat import Client
+gfrom fbchat import Client
 
 
 def get_args():
