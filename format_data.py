@@ -1,6 +1,9 @@
 import joblib
 import os
+from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfTransformer
+import numpy as np
 
 class FormatData:
     def __init__(self):
@@ -8,6 +11,8 @@ class FormatData:
         self.messages = self.__get_messages()
         self.vocabulary = self.__bag_of_words()
         self.counts = self.__get_counts()
+        self.__term_freq_inverse_doc()
+
 
     def __get_labels(self):
         labels = []
@@ -56,9 +61,11 @@ class FormatData:
                         vocabulary.append(word)
         return vocabulary
 
-    def __get_counts(self):
+    def __get_counts_manually(self):
         """
-        Returns a list of lists of count vectors for each message sent by a person.
+        Returns a numpy array of lists of count vectors for each message sent by a person.
+        Manual implementation of CountVectorizer using dense matrices. CountVectorized, however
+        ignores some words in the vocab such as emojis and may be less helpful.
         """
         counts = []
         for i in range(len(self.messages)):
@@ -67,7 +74,7 @@ class FormatData:
             for message in self.messages[i]:
                 message_count = self.__get_word_count_vector(message)
                 counts[i].append(message_count)
-        return counts
+        return np.array(counts)
 
     def __get_word_count_vector(self, message):
         """
@@ -79,6 +86,25 @@ class FormatData:
             count[self.vocabulary.index(word)] += 1
         return count
 
+    def __get_counts(self):
+        """
+        Returns a sparse matrix of lists of count vectors for each message sent by a person.
+        """
+        all_messages = []
+        counts = []
+        count_vect = CountVectorizer(vocabulary=self.vocabulary)
+
+        for person in self.messages:
+            count_vector = count_vect.fit_transform(person)
+            counts.append(count_vector)
+
+        return counts
+
+    def __term_freq_inverse_doc(self):
+        tfidf_transformer = TfidfTransformer()
+        for i in range(len(self.counts)):
+            self.counts[i] = tfidf_transformer.fit_transform(self.counts[i])
+
     def get_dataset(self):
         """
         Shuffle and split data into training and testing.
@@ -88,10 +114,11 @@ class FormatData:
         for i in range(len(self.counts)):
             person = self.counts[i]
             for count_vector in person:
-                X.append(count_vector)
+                X.append(count_vector.toarray()[0])
                 y.append(i)
 
         X_train, X_test, y_train, y_test = train_test_split(X, y,
                                                             test_size=0.2,
                                                             random_state=42)
-        return X_train, X_test, y_train, y_test
+
+        return X_train, X_test, y_train, y_test, self.labels
