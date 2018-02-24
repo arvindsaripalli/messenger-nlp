@@ -54,7 +54,7 @@ def main():
     joblib.dump(user_messages, './messages/{}.pkl'.format(search_name))
 
     print("Wrote {} messages to ".format(len(user_messages)), "./messages/{}.pkl".format(search_name))
-    
+
     client.logout()
 
 
