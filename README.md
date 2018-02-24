@@ -7,7 +7,6 @@ This project requires Python 3.6+.
 ```
 $ pip install requirements.txt
 ```
----
 
 ## Usage
 1. Download messenger messages for people to classify:
