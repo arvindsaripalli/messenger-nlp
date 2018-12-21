@@ -14,6 +14,8 @@ class MessageDownloader:
         """
         self.names = args.names
         self.thread_ids = args.ids
+        self.limit = args.limit
+        self.messages_path = args.path
         self.client = self.authenticate()
 
     def authenticate(self):
@@ -25,7 +27,7 @@ class MessageDownloader:
         client = Client(user, password)
         return client
     
-    def get_valid_queries(self):
+    def get_threads(self):
         """
             Returns a list of tuples of valid threads. 
             Each tuple is of the form (thread id, thread name)
@@ -62,51 +64,58 @@ class MessageDownloader:
 
         return valid_threads     
 
+    def get_messages_from_thread(self, thread_uid):
+        """
+            Returns a list of message objects from the provided thread id.
+        """
+        messages = self.client.fetchThreadMessages(thread_id=thread_uid,
+                                                   limit=self.limit)
+
+        # Since the message come in reversed order, reverse them
+        messages.reverse()
+
+        return messages 
+        """
+        for message in messages:
+            if message.author != self.client.uid:
+                msg_dict["recipient"].append(message)
+            else:
+                msg_dict["user"].append(message)
+
+        return msg_dict
+        """
+   
     def download_messages(self):
-        query_threads = self.get_valid_queries()
-        print(query_threads)
+        """
+           Finds valid threads from queries and saves them to a messages
+           directory. 
+        """
+        threads = self.get_threads()
 
-def process_message(message, user_id):
-    if message.author == user_id or message == "None":
-        return None
-    return message
-
+        # Create the messages dir if it doesn't exist.
+        if not os.path.exists(self.messages_path):
+            os.makedirs(self.messages_path)
+        
+        # Save each conversation to the directory.
+        for thread in threads:
+            uid, name = thread
+            messages = self.get_messages_from_thread(uid)
+            msg_dict = {"client_id": self.client.uid, "messages": messages}
+            
+            # Store the messages for this thread in its own file.
+            file_name = '{}_{}.pkl'.format(name, uid)
+            file_path = os.path.join(self.messages_path, file_name)
+            joblib.dump(msg_dict, file_path)
+        
+        print("Downloaded {} messages from the following conversations: {}".format(self.limit, threads))
 
 def main():
-    search_name, limit = get_args()
-    client = login()
-    user_id = client.uid
-    thread = client.searchForThreads(search_name)[0]
-
-    # Gets the last 'limit' number of messages sent to the conversation.
-    print("Getting messages for {}...".format(thread.name))
-    messages = client.fetchThreadMessages(thread_id=thread.uid, limit=limit)
-
-    # Since the message come in reversed order, reverse them
-    messages.reverse()
-
-    user_messages = []
-    # Prints the content of messages not sent by the author
-    for message in messages:
-        if message.author != user_id:
-            user_messages.append(message)
-
-    if not os.path.exists('messages'):
-        os.makedirs('messages')
-    joblib.dump(user_messages, './messages/{}.pkl'.format(search_name))
-
-    print("Wrote {} messages to ".format(len(user_messages)), "./messages/{}.pkl".format(search_name))
-
-    client.logout()
-
-
-if __name__ == '__main__':
     # Command line argument parsing.
     parser = argparse.ArgumentParser(description='Downloads Facebook Messenger Convserations.')
     parser.add_argument('--names', nargs='+', help='Names of user conversation to search for and get messages from.')
     parser.add_argument('--ids', nargs='+', help='Messenger conversation ids to get messages from.')
-    parser.add_argument('--limit', default=30, help='Number of messages to be recorded')
-
+    parser.add_argument('--limit', default=30, help='Number of messages to be recorded.')
+    parser.add_argument('--path', default='messages', help='Absolute path to store messages to.')
     args = parser.parse_args()
 
     # Throw an error if no names or thread ids were supplied.
@@ -117,3 +126,7 @@ if __name__ == '__main__':
 
     md = MessageDownloader(args)
     md.download_messages()
+    md.client.logout()
+
+if __name__ == '__main__':
+    main()

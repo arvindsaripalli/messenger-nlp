@@ -9,11 +9,26 @@ $ pip install requirements.txt
 ```
 
 ## Usage
-1. Download messenger messages for people to classify:
+
+1. Download messenger messages:
+
+``` bash
+
+python get_messages.py --names 'Name1' 'Name2' 'etc.' --limit="Number of messages to download per conversation"
 ```
-$ python get_messages.py --name="Name to search for" --limit="Number of messages to download"
+
+Alternatively, if you know the ids of your messenger conversations:
+
+``` bash
+python get_messages.py --ids 'id1' 'id2' 'etc.' --limit="Number of messages to download per converstaion"
 ```
+
+The messages download to a ./messages directory in the directory that you run
+the script by default. You can specify a different path with the --path flag.
+
 2. Run classification:
+
+
 ```
 $ python example.py
 ```
